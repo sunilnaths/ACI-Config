@@ -1,0 +1,42 @@
+tenant:
+  - { tenant: Prod-Tenant, descri: Prod-Tenant }
+
+networking:
+  - { vrf: Pd-Fro-VRF, bridge: Pci-Fro-BD, epg: Pci-Web-epg,
+      gateway: 192.168.100.1, mask: 24, ap: Pci-Web-AP }
+  - { vrf: Pd-Fro-VRF, bridge: Pci-Fro-BD, epg: Pci-Web1-epg,
+      gateway: 192.168.110.1, mask: 24, ap: Pci-Web1-AP }
+  - { vrf: Pd-Fro-VRF, bridge: non-Fro-BD, epg: non-Web-epg,
+      gateway: 192.168.120.1, mask: 24, ap: non-Web-AP }
+  - { vrf: Pd-Fro-VRF, bridge: non-Fro-BD, epg: non-Web1-epg,
+      gateway: 192.168.130.1, mask: 24, ap: non-Web1-AP }
+  - { vrf: Pd-Bla-VRF, bridge: Pci-Bla-BD, epg: Pci-Db-epg,
+      gateway: 192.168.200.1, mask: 24, ap: Pci-Db-AP }
+  - { vrf: Pd-Bla-VRF, bridge: Pci-Bla-BD, epg: Pci-Db1-epg,
+      gateway: 192.168.210.1, mask: 24, ap: Pci-Db1-AP }
+  - { vrf: Pd-Bla-VRF, bridge: non-Bla-BD, epg: non-Db-epg,
+      gateway: 192.168.220.1, mask: 24, ap: non-Db-AP }
+  - { vrf: Pd-Bla-VRF, bridge: non-Bla-BD, epg: non-Db1-epg,
+      gateway: 192.168.230.1, mask: 24, ap: non-Db1-AP }
+
+stdypool:
+  - { pool: Static, aep: STD-aep, domain_type: phys, pooltype: static,
+    descri: Static pool,start: 100,end: 100, domain: PHY-STA-Prod-Dom }
+  - { pool: Dy-pool-Prod1, aep: DYN-aep, domain_type: phys,pooltype: dynamic,
+    descri: Dynamic pool,start: 200,end: 250, domain: PHY-DYN-Prod1-Dom }
+  - { pool: L3-pool, aep: L3OUT-aep, domain_type: l3dom, pooltype: static,
+    descri: L3out pool,start: 500,end: 500, domain: PHY-L3OUT-Prod-Dom }
+
+vmmpool:
+  - { pool: VMM-pool-Prod1, aep: VMM-aep, pooltype: dynamic, start: 260,
+    end: 400, descri: Dynamic pool, domain: VMM-DYN-Prod1-Dom }
+
+contrac:
+  - { contract: PCI_WEB_DB, scope: tenant, priority: level1,filter: WEB_DB,
+      action: allow, entry: Web_to_DB-ent, ether_type: ip, protocol: tcp,
+      log: none, dst_start: 80, dst_end: 80, subject: web-bd-pci,
+      type: provider, epg: Pci-Web-epg, ap: Pci-Web-AP }
+
+contoepg:
+  - { type: provider, epg: Pci-Web-epg, ap: Pci-Web-AP }
+  - { type: consumer,epg: Pci-Db-epg, ap: Pci-Db-AP }

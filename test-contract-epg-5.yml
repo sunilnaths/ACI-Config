@@ -1,0 +1,125 @@
+---
+- hosts: apic
+  any_errors_fatal: true
+
+  vars_files:
+    - var-file.yml
+
+  vars_prompt:
+    - name: "apic_ip"
+      prompt: "Enter APIC IP"
+      private: no
+      default: 192.168.1.54
+
+    - name: "username"
+      prompt: "Enter your APIC Username"
+      default: 'admin'
+
+    - name: "password"
+      prompt: "Enter your APIC password"
+      private: no
+      default: sunven12
+
+  vars:
+    ansible_connection: local
+    connection: local
+    ansible_python_interpreter: /usr/bin/python3
+    aci_login: &aci_login
+       hostname: '{{ inventory_hostname }}'
+       username: '{{ username }}'
+       password: '{{ password }}'
+       validate_certs: no
+
+  tasks:
+    - name: Create contract
+      aci_contract:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        contract: "{{ item[1].contract }}"
+        scope: "{{ item[1].scope }}"
+        state: present
+      with_nested:
+        - "{{ tenant }}"
+        - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract-1
+
+
+    - name: Create Contract-subject
+      aci_contract_subject:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        contract: "{{ item[1].contract }}"
+        subject: "{{ item[1].subject }}"
+        description: "{{ item[1].contract }}-{{ item[1].subject }}"
+        reverse_filter: yes
+        priority: "{{ item[1].priority }}"
+        state: present
+      with_nested:
+          - "{{ tenant }}"
+          - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract-2
+
+    - name: Add a new filter
+      aci_filter:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        filter: "{{ item[1].filter }}"
+        description: "{{ item[1].filter }}"
+        state: present
+      with_nested:
+          - "{{ tenant }}"
+          - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract
+
+    - name: Add a new filter to a tenant
+      aci_filter_entry:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        entry: "{{ item[1].entry }}"
+        ether_type: "{{ item[1].ether_type }}"
+        filter: "{{ item[1].filter }}"
+        description: "{{ item[1].entry }}"
+        ip_protocol: "{{ item[1].protocol }}"
+        dst_port_start: "{{ item[1].dst_start }}"
+        dst_port_end: "{{ item[1].dst_end }}"
+        stateful: true
+        state: present
+      with_nested:
+          - "{{ tenant }}"
+          - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract-4
+
+    - name: Create contract to subject to filter
+      aci_contract_subject_to_filter:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        contract: "{{ item[1].contract }}"
+        subject: "{{ item[1].subject }}"
+        filter: "{{ item[1].filter }}"
+        log: "{{ item[1].log }}"
+        state: present
+      with_nested:
+          - "{{ tenant }}"
+          - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract
+
+    - name: Create EPG contract to subject to filter
+      aci_epg_to_contract:
+        <<: *aci_login
+        tenant: "{{ item[0].tenant }}"
+        ap: "{{ item[1].ap }}"
+        epg: "{{ item[1].epg }}"
+        contract: "{{ item[2].contract }}"
+        contract_type: "{{ item[1].type }}"
+        state: present
+      with_nested:
+        - "{{ tenant }}"
+        - "{{ contoepg }}"
+        - "{{ contrac }}"
+      delegate_to: localhost
+      tags: Contract-5

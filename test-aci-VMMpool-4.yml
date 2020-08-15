@@ -1,0 +1,108 @@
+---
+- hosts: apic
+  any_errors_fatal: true
+
+  vars_files:
+    - var-file.yml
+
+  vars_prompt:
+    - name: "apic_ip"
+      prompt: "Enter APIC IP"
+      private: no
+      default: 192.168.1.54
+
+    - name: "username"
+      prompt: "Enter your APIC Username"
+      default: 'admin'
+
+    - name: "password"
+      prompt: "Enter your APIC password"
+      private: no
+      default: sunven12
+
+  vars:
+    ansible_connection: local
+    connection: local
+    ansible_python_interpreter: /usr/bin/python3
+    aci_login: &aci_login
+       hostname: '{{ inventory_hostname }}'
+       username: '{{ username }}'
+       password: '{{ password }}'
+       validate_certs: no
+
+  tasks:
+    - name: Create VLAN Static Pool Name
+      aci_vlan_pool:
+        <<: *aci_login
+        pool: "{{ item.pool }}"
+        validate_certs: no
+        use_ssl: yes
+        pool_allocation_mode: "{{ item.pooltype }}"
+        description: "{{ item.pool }}-vlan{{item.start}}-{{item.end}}"
+        state: present
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: pool
+
+    - name: Assign Static Pool
+      aci_vlan_pool_encap_block:
+        <<: *aci_login
+        pool: "{{ item.pool }}"
+        validate_certs: no
+        use_ssl: yes
+        block_name: "{{ item.pool }}-vlan{{item.start}}-{{item.end}}"
+        block_start: "{{ item.start }}"
+        block_end: "{{ item.end }}"
+        description: "{{ item.pool }}-vlan{{item.start}}-{{item.end}}"
+        pool_allocation_mode: "{{ item.pooltype }}"
+        state: present
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: pool-vlan
+
+    - name: Create domain
+      aci_domain:
+        <<: *aci_login
+        domain: "{{ item.domain }}"
+        domain_type: vmm
+        vm_provider: vmware
+        state: present
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: domain
+
+    - name: Attach VMM pool to domain
+      aci_domain_to_vlan_pool:
+        <<: *aci_login
+        domain: "{{ item.domain }}"
+        domain_type: vmm
+        pool: "{{ item.pool }}"
+        pool_allocation_mode: "{{ item.pooltype }}"
+        vm_provider: vmware
+        state: present
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: domain
+
+
+    - name: Create AAEP
+      aci_aep:
+        <<: *aci_login
+        aep: "{{ item.aep }}"
+        description: default
+        state: present
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: domain
+
+    - name: Assign AAEP to Domain
+      aci_aep_to_domain:
+        <<: *aci_login
+        aep: "{{ item.aep }}"
+        domain: "{{ item.domain }}"
+        domain_type: vmm
+        state: present
+        vm_provider: vmware
+      with_items: "{{ vmmpool }}"
+      delegate_to: localhost
+      tags: domain
